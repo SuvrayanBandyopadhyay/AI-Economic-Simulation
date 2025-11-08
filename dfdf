@@ -1,0 +1,93 @@
+alse
+    else:
+        firm_tax_rates = []
+        house_tax_rates = []
+        collected_taxes = []
+        min_utility = []
+        max_utility = []
+        tax_details = []
+        gov_utilities = []
+        min_savings_houses = []
+        max_savings_houses = []
+        min_savings_firms = []
+        max_savings_firms = []
+
+        for r in range(rl_epochs):
+            print(f"RL epoch {r}")
+
+            firms = reset_firms(firms)
+            households = reset_houses(households)
+            gov = reset_gov(gov,len(households))
+
+            
+            
+            for t in range(rl_timesteps):
+
+                work_trade(households,firms,gov)
+
+                for f in firms:
+                    f.comp_reward()
+
+                for h in households:
+                    h.comp_reward()
+        
+                gov.comp_reward(households)
+
+                firm_tax_rates.append(gov.tax_rate_firm)
+                house_tax_rates.append(gov.tax_collected_house)
+                collected_taxes.append(gov.tax_collected_firm + gov.tax_collected_house)
+                min_utility.append(min([h.reward for h in households]))
+                max_utility.append(max([h.reward for h in households]))
+                tax_details.append((gov.mean_trh,gov.std_trh,gov.mean_trf,gov.std_trf))
+                gov_utilities.append(gov.reward)
+                min_savings_houses.append(min([h.savings for h in households]))
+                max_savings_houses.append(max([h.savings for h in households]))
+                min_savings_firms.append(min([f.savings for f in firms]))
+                max_savings_firms.append(max([f.savings for f in firms]))
+
+
+            # clip histories
+
+            if len(firm_tax_rates) > RL_HISTORY_LEN: firm_tax_rates = firm_tax_rates[-RL_HISTORY_LEN:]
+            if len(house_tax_rates) > RL_HISTORY_LEN: house_tax_rates = house_tax_rates[-RL_HISTORY_LEN:]
+            if len(collected_taxes) > RL_HISTORY_LEN: collected_taxes = collected_taxes[-RL_HISTORY_LEN:]
+            if len(min_utility) > RL_HISTORY_LEN: min_utility = min_utility[-RL_HISTORY_LEN:]
+            if len(max_utility) > RL_HISTORY_LEN: max_utility = max_utility[-RL_HISTORY_LEN:]
+            if len(tax_details) > RL_HISTORY_LEN: tax_details = tax_details[-RL_HISTORY_LEN:]
+            if len(gov_utilities) > RL_HISTORY_LEN: gov_utilities = gov_utilities[-RL_HISTORY_LEN:]
+            if len(min_savings_houses) > RL_HISTORY_LEN: min_savings_houses = min_savings_houses[-RL_HISTORY_LEN:]
+            if len(max_savings_houses) > RL_HISTORY_LEN: max_savings_houses = max_savings_houses[-RL_HISTORY_LEN:]
+            if len(min_savings_firms) > RL_HISTORY_LEN: min_savings_firms = min_savings_firms[-RL_HISTORY_LEN:]
+            if len(max_savings_firms) > RL_HISTORY_LEN: max_savings_firms = max_savings_firms[-RL_HISTORY_LEN:]
+
+            
+            # Train gov rl
+            TD_PPO(gov,
+                firm_tax_rates,
+                house_tax_rates,
+                collected_taxes,
+                min_utility,
+                max_utility,
+                tax_details,
+                gov_utilities,
+                min_savings_houses,
+                max_savings_houses,
+                min_savings_firms,
+                max_savings_firms,
+                )
+            
+            epoch_house_reward.append(np.mean(np.array([h.reward for h in households])))
+            epoch_firm_reward.append(np.mean(np.array([f.reward for f in firms])))
+            epoch_gov_reward.append(gov.reward)
+            epoch_housetax.append(gov.tax_rate_house)
+            epoch_firmtax.append(gov.tax_rate_firm)
+            epoch_housesavings.append(np.mean(np.array([h.savings for h in households])))
+            epoch_firmsavings.append(np.mean(np.array([f.savings for f in firms])))
+
+            print(len(tax_details))
+
+            firms = reset_firms(firms)
+            households = reset_houses(households)
+            gov = reset_gov(gov,len(households))
+
+        ga_vs_rl = True
